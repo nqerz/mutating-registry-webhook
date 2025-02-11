@@ -1,0 +1,15 @@
+.git/
+.github/
+.gitignore
+bin/
+charts/
+manifests/
+*.md
+*.tgz
+*_test.go
+sonar-project.properties
+.tmp/
+**/.tmp
+**/certs/*.*
+!**/certs/.gitkeep
+**/charts/templates/secret.yaml

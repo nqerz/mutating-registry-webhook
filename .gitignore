@@ -1,0 +1,6 @@
+**/.tmp
+**/certs/*.*
+!**/.gitkeep
+**/charts/templates/secret.yaml
+**/*.tgz
+bin/*

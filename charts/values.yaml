@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: nqerz/registry-mutation-webhook
+  tag: latest
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+registryMappings:
+  "docker.io": "mirror.example.com"
+  "gcr.io": "gcr.mirror.example.com"
+
+webhook:
+  port: 8443
+  certDir: /etc/webhook/certs
+  configWatchInterval: 3600 # seconds
+
+service:
+  type: ClusterIP
+  port: 443
+
+tls:
+  secretName: mutating-registry-webhook-tls

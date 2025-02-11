@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutating-registry-webhook
+  labels:
+    app: mutating-registry-webhook
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: mutating-registry-webhook
+  template:
+    metadata:
+      labels:
+        app: mutating-registry-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.webhook.port }}
+          name: webhook
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: {{ .Values.webhook.certDir }}
+          readOnly: true
+        - name: config-volume
+          mountPath: /etc/webhook/config
+          readOnly: true
+        env:
+        - name: CONFIG_WATCH_INTERVAL
+          value: "{{ .Values.webhook.configWatchInterval }}"
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: webhook
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: webhook
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: {{ .Values.tls.secretName }}
+      - name: config-volume
+        configMap:
+          name: mutating-registry-webhook-config

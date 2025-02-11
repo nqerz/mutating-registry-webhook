@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mutating-registry-webhook-config
+  labels:
+    app: mutating-registry-webhook
+data:
+  registry-mappings: |
+    {{- range $key, $value := .Values.registryMappings }}
+    {{ $key }}={{ $value }}
+    {{- end }}
