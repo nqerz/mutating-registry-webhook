@@ -18,7 +18,7 @@ test:
 	go test ./...
 
 deploy: docker-build docker-push
-	helm upgrade --install registry-webhook ./charts
+	helm upgrade --install registry-mutation-webhook ./charts
 
 generate-certs:
 	chmod +x ./scripts/tls-gen.sh
@@ -28,17 +28,17 @@ helm-package:
 	helm package ./charts --version $(CHART_VERSION) --app-version $(IMAGE_TAG)
 
 dry-run:
-	helm install --dry-run --debug registry-webhook ./charts
+	helm install --dry-run --debug registry-mutation-webhook ./charts
 
 test-deploy: helm-package
 	kubectl config use-context docker-desktop
 	kubectl apply -f secret.yaml
-	helm upgrade --install --wait registry-webhook ./registry-mutation-webhook-*.tgz
+	helm upgrade --install --wait registry-mutation-webhook ./registry-mutation-webhook-*.tgz
 
 # Verify the deployment
 verify-deployment:
 	kubectl get pods -l app=mutating-registry-webhook
-	kubectl get mutatingwebhookconfigurations.admissionregistration.k8s.io registry-webhook
+	kubectl get mutatingwebhookconfigurations.admissionregistration.k8s.io mutating-registry-webhook
 
 # Clean up build artifacts
 clean:
