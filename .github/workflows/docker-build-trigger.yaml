@@ -1,0 +1,66 @@
+name: Docker Build Trigger
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches:
+      - main
+    ignored-paths:
+      - 'charts/**'
+
+# Global condition for the entire workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup-old-releases:
+    uses: ./.github/workflows/cleanup-old-releases.yaml
+    with:
+      retention_days: 7
+      repository: ${{ github.repository }}
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_password: ${{ secrets.DOCKER_PASSWORD }}
+
+  check-pr-merge:
+    outputs:
+      is_release: ${{ github.event_name != 'pull_request' }}
+      version: ${{ github.event_name == 'pull_request' && steps.version_prerelease.outputs.version || steps.version_release.outputs.version }}
+      version_tag: ${{ steps.version_release.outputs.version_tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Git Semantic Version Of Release
+        uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
+        id: version_release
+        with:
+          version_format: '${major}.${minor}.${patch}'
+
+      - name: Git Semantic Version Of Prerelease
+        uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
+        id: version_prerelease
+        with:
+          version_format: '${major}.${minor}.${patch}-pre${{ github.event.pull_request.number }}.${increment}'
+
+      - name: Debug Output
+        run: |
+          echo "Is Release: ${{ github.event_name != 'pull_request' }}"
+          echo "Pre Version: ${{ steps.version_prerelease.outputs.version }}"
+          echo "Version: ${{ github.event_name == 'pull_request' && steps.version_prerelease.outputs.version || steps.version_release.outputs.version }}"
+          echo "Version Tag: ${{ steps.version_release.outputs.version_tag }}"
+
+  docker-build-push:
+    needs: [check-pr-merge]
+    uses: ./.github/workflows/docker-build.yaml
+    with:
+      version: ${{ needs.check-pr-merge.outputs.version }}
+      push_image: ${{ needs.check-pr-merge.outputs.is_release == 'true' }}
+    secrets: inherit
+
