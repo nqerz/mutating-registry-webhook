@@ -2,44 +2,60 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - "v*.*.*"
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 
 jobs:
+  # Skip the release workflow if it's a PR that wasn't merged
+  check-pr-merge:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Proceeding with release workflow"
+
+  get-latest-tag:
+    needs: [check-pr-merge]
+    uses: ./.github/workflows/get-latest-tag.yaml
+
   build:
+    needs: [get-latest-tag]
     uses: ./.github/workflows/build.yaml
     with:
-      version: ${{ github.ref_name }}
+      version: ${{ needs.get-latest-tag.outputs.next_version }}
       push_image: true
     secrets:
       docker_username: ${{ secrets.DOCKER_USERNAME }}
       docker_password: ${{ secrets.DOCKER_PASSWORD }}
+
   release:
-    needs: [build]
+    needs: [build, get-latest-tag]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     steps:
-      - name: Extract version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - uses: actions/checkout@v3
 
-      - name: Configure Git
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Package Helm chart
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          helm package ./charts --version ${{ needs.get-latest-tag.outputs.next_version }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            registry-mutation-webhook-*.tgz
-          name: Release ${{ env.VERSION }}
+          files: registry-mutation-webhook-*.tgz
+          name: Release ${{ needs.get-latest-tag.outputs.next_version }}
+          tag_name: ${{ needs.get-latest-tag.outputs.next_version }}
           generate_release_notes: true
           labels: ${{ steps.meta.outputs.labels }}

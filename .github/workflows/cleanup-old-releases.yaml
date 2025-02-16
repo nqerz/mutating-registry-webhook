@@ -8,11 +8,6 @@ on:
         required: false
         type: number
         default: 7
-      release_pattern:
-        description: 'Pattern to match release names for deletion (e.g., "v1.2.3-test-"*)'
-        required: false
-        type: string
-        default: 'v'
       repository:
         description: 'Repository in format owner/repo'
         required: false
@@ -50,14 +45,14 @@ jobs:
             const now = new Date();
             const retentionDays = ${{ inputs.retention_days }};
             const cutoffDate = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
-            const releasePattern = '${{ inputs.release_pattern }}';
+            const versionPattern = /^v\d+\.\d+\.\d+\-pre\d+-\d+$/;
             const [owner, repo] = '${{ inputs.repository }}'.split('/').length === 2
               ? '${{ inputs.repository }}'.split('/')
               : [context.repo.owner, context.repo.repo];
 
             // Delete old GitHub releases
             for (const release of releases) {
-              if (!release.tag_name.startsWith(releasePattern)) continue;
+              if (!versionPattern.test(release.tag_name)) continue;
               const releaseDate = new Date(release.created_at);
               if (releaseDate < cutoffDate) {
                 console.log(`Deleting GitHub release ${release.tag_name}`);
@@ -77,17 +72,22 @@ jobs:
             // Delete old Docker images
             const { execSync } = require('child_process');
             const dockerRepo = 'nqerz/registry-mutation-webhook';
-            const versionPattern = /^v\d+\.\d+\.\d+-test-[a-f0-9]{40}$/;
 
             try {
               // Get list of tags from Docker Hub
               const tagsCmd = `curl -s "https://hub.docker.com/v2/repositories/${dockerRepo}/tags?page_size=100"`;
-              const tagsResult = JSON.parse(execSync(tagsCmd).toString());
+              const response = execSync(tagsCmd).toString();
+              const tagsResult = JSON.parse(response);
+
+              if (!tagsResult || !tagsResult.results || !Array.isArray(tagsResult.results)) {
+                throw new Error('Invalid response format from Docker Hub API');
+              }
 
               for (const tag of tagsResult.results) {
+                if (!tag || !tag.name || !tag.last_updated) continue;
                 if (!versionPattern.test(tag.name)) continue;
-                const tagDate = new Date(tag.last_updated);
 
+                const tagDate = new Date(tag.last_updated);
                 if (tagDate < cutoffDate) {
                   console.log(`Deleting Docker image tag ${tag.name}`);
                   const deleteCmd = `curl -s -X DELETE -H "Authorization: JWT ${{ secrets.docker_password }}" https://hub.docker.com/v2/repositories/${dockerRepo}/tags/${tag.name}/`;
@@ -95,5 +95,7 @@ jobs:
                 }
               }
             } catch (error) {
-              console.error('Error cleaning up Docker images:', error);
+              console.error('Error cleaning up Docker images:', error.message);
+              if (error.stdout) console.error('API Response:', error.stdout.toString());
+              if (error.stderr) console.error('Error Output:', error.stderr.toString());
             }

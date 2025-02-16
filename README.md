@@ -83,11 +83,27 @@ make docker-build docker-push
 
 ### Testing
 
-Run the test suite:
+Run the unit test suite:
 
 ```bash
 make test
 ```
+
+### Helm Testing
+
+The Helm chart includes automated tests that verify the webhook's functionality. These tests check:
+
+- Webhook health endpoint
+- Image mutation functionality
+- Pod creation and cleanup
+
+To run the Helm tests after deployment:
+
+```bash
+helm test mutating-registry-webhook
+```
+
+The test will create a test pod that verifies the webhook's ability to mutate image registries and clean up afterward.
 
 ### Deployment for Development
 

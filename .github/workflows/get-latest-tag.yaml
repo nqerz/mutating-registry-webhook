@@ -1,0 +1,40 @@
+name: Get Latest Tag
+
+on:
+  workflow_call:
+    outputs:
+      latest_tag:
+        description: "The latest tag from git"
+        value: ${{ jobs.get-latest-tag.outputs.tag }}
+      next_version:
+        description: "The next version to be used"
+        value: ${{ jobs.get-latest-tag.outputs.next_version }}
+      next_pre_version:
+        description: "The next pre-release version to be used"
+        value: ${{ jobs.get-latest-tag.outputs.next_pre_version }}
+
+jobs:
+  get-latest-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get-tag.outputs.tag }}
+      next_version: ${{ steps.get-tag.outputs.next_version }}
+      next_pre_version: ${{ steps.get-tag.outputs.next_pre_version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: get-tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+          # Extract version numbers
+          IFS='.' read -r major minor patch <<< "${LATEST_TAG#v}"
+          # Increment patch version
+          next_version="v$major.$minor.$((patch + 1))"
+          echo "next_version=$next_version" >> $GITHUB_OUTPUT
+          echo "Next version: $next_version"
+          next_pre_version="v$major.$minor.$((patch + 1))-pre${{ github.event.pull_request.number }}-${{ github.run_number }}"
+          echo "next_pre_version=$next_pre_version" >> $GITHUB_OUTPUT
+          echo "Next pre version: $next_pre_version"

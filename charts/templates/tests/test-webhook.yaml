@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test"
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: test
+      image: curlimages/curl:8.00.1
+      command:
+        - /bin/sh
+        - -c
+        - |
+          # Wait for webhook to be ready
+          echo "Waiting for webhook to be ready..."
+          until curl -k https://{{ .Release.Name }}-webhook:{{ .Values.webhook.port }}/health; do
+            sleep 2
+          done
+
+          # Create a test pod to verify webhook mutation
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: test-mutation
+          spec:
+            containers:
+            - name: nginx
+              image: docker.io/library/nginx:latest
+          EOF
+
+          # Verify the pod was created and image was mutated
+          echo "Verifying pod creation and image mutation..."
+          kubectl get pod test-mutation -o jsonpath='{.spec.containers[0].image}'
+
+          # Cleanup test pod
+          kubectl delete pod test-mutation --force
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+  serviceAccountName: {{ .Release.Name }}-test
+  restartPolicy: Never
