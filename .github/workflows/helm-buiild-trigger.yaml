@@ -56,4 +56,5 @@ jobs:
     uses: ./.github/workflows/helm-build.yaml
     with:
       version: ${{ needs.check-pr-merge.outputs.version }}
+      tag_version: ${{ needs.check-pr-merge.outputs.version_tag }}
       is_release: ${{ needs.check-pr-merge.outputs.is_release == 'true' }}

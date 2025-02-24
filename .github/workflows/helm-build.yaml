@@ -6,6 +6,9 @@ on:
       version:
         required: true
         type: string
+      tag_version:
+        required: true
+        type: string
       is_release:
         required: true
         type: boolean
