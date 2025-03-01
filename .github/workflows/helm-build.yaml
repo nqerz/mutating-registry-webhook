@@ -1,0 +1,52 @@
+name: Helm Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      is_release:
+        required: true
+        type: boolean
+
+
+jobs:
+  helm-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Update Helm chart version
+        run: |
+          yq eval '.version = env(VERSION)' -i ./charts/Chart.yaml
+          yq eval '.appVersion = env(VERSION)' -i ./charts/Chart.yaml
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Lint Helm Chart
+        run: helm lint ./charts
+
+      - name: Package Helm chart
+        run: |
+          helm package ./charts --version ${{ inputs.version }}
+
+      - name: Create GitHub Release
+        if: ${{ inputs.is_release }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: registry-mutation-webhook-*.tgz
+          name: ${{ inputs.is_release && ' Release' || 'Test' }} ${{ inputs.version }}
+          tag_name: ${{ inputs.version }}
+          prerelease: ${{ !inputs.is_release }}
+          generate_release_notes: ${{ inputs.is_release }}
