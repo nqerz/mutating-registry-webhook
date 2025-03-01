@@ -6,9 +6,6 @@ on:
       version:
         required: true
         type: string
-      tag_version:
-        required: true
-        type: string
       is_release:
         required: true
         type: boolean
@@ -45,8 +42,10 @@ jobs:
           helm package ./charts --version ${{ inputs.version }}
 
       - name: Create GitHub Release
+        if: ${{ inputs.is_release }}
         uses: softprops/action-gh-release@v1
         with:
+          files: registry-mutation-webhook-*.tgz
           name: ${{ inputs.is_release && ' Release' || 'Test' }} ${{ inputs.version }}
           tag_name: ${{ inputs.version }}
           prerelease: ${{ !inputs.is_release }}
