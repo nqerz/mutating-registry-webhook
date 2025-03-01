@@ -48,7 +48,6 @@ jobs:
         if: ${{ inputs.is_release }}
         uses: softprops/action-gh-release@v1
         with:
-          files: registry-mutation-webhook-*.tgz
           name: ${{ inputs.is_release && ' Release' || 'Test' }} ${{ inputs.version }}
           tag_name: ${{ inputs.version }}
           prerelease: ${{ !inputs.is_release }}
