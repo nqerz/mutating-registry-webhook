@@ -45,7 +45,6 @@ jobs:
           helm package ./charts --version ${{ inputs.version }}
 
       - name: Create GitHub Release
-        if: ${{ inputs.is_release }}
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ inputs.is_release && ' Release' || 'Test' }} ${{ inputs.version }}
