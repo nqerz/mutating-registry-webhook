@@ -21,7 +21,7 @@ jobs:
       next_version: ${{ steps.get-tag.outputs.next_version }}
       next_pre_version: ${{ steps.get-tag.outputs.next_pre_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: get-tag
