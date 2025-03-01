@@ -28,7 +28,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Git Semantic Version Of Prerelease
         uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
