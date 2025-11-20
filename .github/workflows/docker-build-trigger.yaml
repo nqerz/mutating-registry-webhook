@@ -33,7 +33,7 @@ jobs:
       version_tag: ${{ steps.version_release.outputs.version_tag }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
       - name: Git Semantic Version Of Release
         uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
