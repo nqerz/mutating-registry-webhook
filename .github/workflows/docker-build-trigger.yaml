@@ -36,13 +36,13 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Git Semantic Version Of Release
-        uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
+        uses: paulhatch/semantic-version@9f72830310d5ed81233b641ee59253644cd8a8fc
         id: version_release
         with:
           version_format: '${major}.${minor}.${patch}'
 
       - name: Git Semantic Version Of Prerelease
-        uses: paulhatch/semantic-version@a8f8f59fd7f0625188492e945240f12d7ad2dca3
+        uses: paulhatch/semantic-version@9f72830310d5ed81233b641ee59253644cd8a8fc
         id: version_prerelease
         with:
           version_format: '${major}.${minor}.${patch}-pre${{ github.event.pull_request.number }}.${increment}'
