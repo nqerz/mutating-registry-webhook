@@ -43,7 +43,7 @@ jobs:
 
       - name: Create GitHub Release
         if: ${{ inputs.is_release }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: registry-mutation-webhook-*.tgz
           name: ${{ inputs.is_release && ' Release' || 'Test' }} ${{ inputs.version }}
